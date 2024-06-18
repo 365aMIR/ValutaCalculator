@@ -3,8 +3,7 @@ import { Link } from "@remix-run/react";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Currency Exchange" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "Homepage" }
   ];
 };
 
@@ -13,7 +12,7 @@ export default function Index() {
 
   
 
-   <div className="flex items-center justify-center h-screen text-center">
+   <div className="flex items-center justify-center h-screen text-center bg-gradient-to-b from-mainpurple from-10% to-purple-400">
     <div>
       <h2 className="text-white text-4xl">Trusted Global Currency Converter & Money Transfer Solutions</h2>
       <span className="text-white text-lg">Best source for currency conversion, sending money online and tracking exchange rates</span>
@@ -21,7 +20,7 @@ export default function Index() {
       <br />
       
       <Link to="/exchange">
-      <button className="px-20 py-5 bg-lila rounded-lg shadow-lg">Convert</button>
+      <button className="px-20 py-5 bg-lila rounded-xl shadow-lg">Convert</button>
       </Link>
     </div>
    </div>

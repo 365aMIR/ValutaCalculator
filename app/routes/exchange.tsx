@@ -1,49 +1,98 @@
-import type { MetaFunction } from "@remix-run/node";
+import { MetaFunction, LoaderFunction, ActionFunction } from "@remix-run/node";
+import { useLoaderData, Form, useActionData } from "@remix-run/react";
+import https from 'https';
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Currency Exchange" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
+export const meta: MetaFunction = () => [{ title: "Converter" }];
+
+const fetchCurrencyData = (path: string) =>
+  new Promise<any>((resolve, reject) => {
+    https.get(
+      {
+        hostname: 'currency-exchange.p.rapidapi.com',
+        path,
+        headers: {
+          'x-rapidapi-key': '09f9741e04mshacfa545e3bc86dfp121e52jsn93b63e419c3e',
+          'x-rapidapi-host': 'currency-exchange.p.rapidapi.com',
+        },
+      },
+      res => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(JSON.parse(data)));
+      }
+    ).on('error', reject);
+  });
+
+export const loader: LoaderFunction = async () => {
+  return await fetchCurrencyData('/listquotes');
 };
 
-export default function Index() {
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const amount = parseFloat(formData.get("amount") as string);
+  const fromCurrency = formData.get("fromCurrency") as string;
+  const toCurrency = formData.get("toCurrency") as string;
+
+  const conversionRate = await fetchCurrencyData(`/exchange?q=1.0&from=${fromCurrency}&to=${toCurrency}`);
+  const convertedAmount = amount * parseFloat(conversionRate);
+
+  return { amount, fromCurrency, toCurrency, conversionRate: parseFloat(conversionRate), convertedAmount };
+};
+
+export default function Exchange() {
+  const currencies = useLoaderData<string[]>();
+  const conversionResult = useActionData<{
+    amount: number;
+    fromCurrency: string;
+    toCurrency: string;
+    conversionRate: number;
+    convertedAmount: number;
+  }>();
+
   return (
-
-  
-
-   <div className="items-center justify-center h-screen text-center flex flex-col">
-
-    <div className="mb-10">
-      <h2 className="text-white text-4xl">Currency Converter</h2>
-      <span className="text-white text-lg">Check live foreign currency exchange rates</span>
+    <div className="bg-gradient-to-b from-mainpurple from-10% to-purple-400 flex flex-col items-center justify-center h-screen text-center">
+      <div className="mb-10">
+        <h2 className="text-white text-4xl">Currency Converter</h2>
+        <span className="text-white text-lg">Check live foreign currency exchange rates</span>
+      </div>
+      <div className="bg-mainpurple w-9/12 mx-auto py-10 px-5 rounded-lg drop-shadow-2xl">
+        <Form method="post" className="space-y-6">
+          <div className="flex flex-wrap justify-center gap-5">
+            <label className="text-white flex flex-col items-start w-60">
+              <h2 className="mb-2">Amount</h2>
+              <input name="amount" defaultValue="1.00" className="rounded-2xl py-3 bg-lila px-3 text-black w-full shadow-2xl" type="text" />
+            </label>
+            <label className="text-white flex flex-col items-start w-60">
+              <h2 className="mb-2">From</h2>
+              <select name="fromCurrency" className="rounded-2xl py-3 bg-lila px-3 text-black w-full shadow-2xl appearance-none">
+                {currencies.map(currency => (
+                  <option key={currency} value={currency}>{currency}</option>
+                ))}
+              </select>
+            </label>
+            <div className="text-white flex items-center mt-10">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </div>
+            <label className="text-white flex flex-col items-start w-60">
+              <h2 className="mb-2">To</h2>
+              <select name="toCurrency" className="rounded-2xl py-3 bg-lila px-3 text-black w-full shadow-2xl appearance-none">
+                {currencies.map(currency => (
+                  <option key={currency} value={currency}>{currency}</option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" className="px-10 py-3 bg-lila rounded-xl shadow-2xl">Convert</button>
+          </div>
+        </Form>
+        {conversionResult && (
+          <div className="mt-10 text-white left block">
+            <p>{conversionResult.amount} {conversionResult.fromCurrency} = <span className="text-2xl">{conversionResult.convertedAmount} {conversionResult.toCurrency}</span></p>
+            <p className="text-sm">1 {conversionResult.fromCurrency} = {conversionResult.conversionRate} {conversionResult.toCurrency}</p>
+          </div>
+        )}
+      </div>
     </div>
-
-
-    
-    <div className="bg-black w-9/12 mx-auto py-10 shadow-lg rounded-lg">
-        <div className="flex justify-center gap-5">
-            <label className="text-white">
-                <h2>Amount</h2>
-                <input className="rounded-lg py-3 bg-lila px-3 text-black" type="text"/>
-            </label>
-
-            <label className="text-white">
-                <h2>From</h2>
-                <input className="rounded-lg py-3 bg-lila px-3 text-black" type="text"/>
-            </label>
-
-            <label className="text-white">
-                <h2>To</h2>
-                <input className="rounded-lg py-3 bg-lila px-3 text-black" type="text"/>
-            </label>
-        </div>
-        <div className="flex justify-end mt-10">
-        <button className="px-10 py-3 bg-lila rounded-lg">Convert</button>
-        </div>
-    </div>
-
-
-   </div>    
   );
 }
